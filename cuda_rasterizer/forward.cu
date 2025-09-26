@@ -180,6 +180,7 @@ __global__ void preprocessCUDA(int P, int D, int M,
 	bool prefiltered)
 {
 	auto idx = cg::this_grid().thread_rank();
+	// printf("idx %d:", idx);
 	if (idx >= P)
 		return;
 
@@ -247,12 +248,13 @@ __global__ void preprocessCUDA(int P, int D, int M,
 	}
 
 	// Store some useful helper data for the next steps.
-	depths[idx] = p_view.z;
+	depths[idx] = p_view.z; //! [YC] need to check the depth
 	radii[idx] = my_radius;
 	points_xy_image[idx] = point_image;
 	// Inverse 2D covariance and opacity neatly pack into one float4
 	conic_opacity[idx] = { conic.x, conic.y, conic.z, opacities[idx] };
 	tiles_touched[idx] = (rect_max.y - rect_min.y) * (rect_max.x - rect_min.x);
+	// printf("idx: %d, %d, %d, %d\n", idx, depths[idx], radii[idx], points_xy_image[idx]);
 }
 
 // Main rasterization method. Collaboratively works on one tile per
@@ -263,14 +265,18 @@ __global__ void __launch_bounds__(BLOCK_X * BLOCK_Y)
 renderCUDA(
 	const uint2* __restrict__ ranges,
 	const uint32_t* __restrict__ point_list,
+	const uint32_t* __restrict__ point_depth_list, // [YC] add
 	int W, int H,
 	const float2* __restrict__ points_xy_image,
 	const float* __restrict__ features,
+	const float* __restrict__ depths, // [YC] add
 	const float4* __restrict__ conic_opacity,
 	float* __restrict__ final_T,
 	uint32_t* __restrict__ n_contrib,
 	const float* __restrict__ bg_color,
-	float* __restrict__ out_color)
+	float* __restrict__ out_color,
+	const float* __restrict__ depth_bg_color // [YC]
+)
 {
 	// Identify current tile and associated min/max pixel range.
 	auto block = cg::this_thread_block();
@@ -351,13 +357,24 @@ renderCUDA(
 			}
 
 			// Eq. (3) from 3D Gaussian splatting paper.
-			for (int ch = 0; ch < CHANNELS; ch++)
-				C[ch] += features[collected_id[j] * CHANNELS + ch] * alpha * T;
+			// >>>> [YC] add
+			if (depths[collected_id[j]] < (depth_bg_color[pix_id]+1)){
+				for (int ch = 0; ch < CHANNELS; ch++){
+					C[ch] += features[collected_id[j] * CHANNELS + ch] * alpha * T;
+				}
+			}
+			else{
+				continue;
+			}
+			// <<<< [YC] add
+
+			// for (int ch = 0; ch < CHANNELS; ch++){
+			// 	C[ch] += features[collected_id[j] * CHANNELS + ch] * alpha * T;
+			// }
 
 			T = test_T;
 
-			// Keep track of last range entry to update this
-			// pixel.
+			// Keep track of last range entry to update this pixel.
 			last_contributor = contributor;
 		}
 	}
@@ -377,26 +394,34 @@ void FORWARD::render(
 	const dim3 grid, dim3 block,
 	const uint2* ranges,
 	const uint32_t* point_list,
+	const uint32_t* point_depth_list, // [YC] add
 	int W, int H,
 	const float2* means2D,
-	const float* colors,
+	const float* colors, // features
+	const float* depths, // [YC] add
 	const float4* conic_opacity,
 	float* final_T,
 	uint32_t* n_contrib,
 	const float* bg_color,
-	float* out_color)
+	float* out_color,
+	const float* depth_bg_color // [YC]
+)	
 {
 	renderCUDA<NUM_CHANNELS> << <grid, block >> > (
 		ranges,
 		point_list,
+		point_depth_list, // [YC] add
 		W, H,
 		means2D,
-		colors,
+		colors, // features
+		depths, // [YC] add
 		conic_opacity,
 		final_T,
 		n_contrib,
 		bg_color,
-		out_color);
+		out_color,
+		depth_bg_color // [YC]
+	);
 }
 
 void FORWARD::preprocess(int P, int D, int M,

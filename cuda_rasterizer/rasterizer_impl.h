@@ -56,10 +56,15 @@ namespace CudaRasterizer
 	{
 		size_t sorting_size;
 		uint64_t* point_list_keys_unsorted;
+		uint64_t* point_depth_list_keys_unsorted; // [YC] add
 		uint64_t* point_list_keys;
+		uint64_t* point_depth_list_keys; // [YC] add
 		uint32_t* point_list_unsorted;
+		uint32_t* point_depth_list_unsorted; // [YC] add
 		uint32_t* point_list;
+		uint32_t* point_depth_list; // [YC] add
 		char* list_sorting_space;
+		char* list_sorting_space_depth; // [YC] add
 
 		static BinningState fromChunk(char*& chunk, size_t P);
 	};

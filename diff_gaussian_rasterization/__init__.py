@@ -28,7 +28,8 @@ def rasterize_gaussians(
     rotations,
     cov3Ds_precomp,
     raster_settings,
-):
+):  
+    print("rasterize_gaussians")
     return _RasterizeGaussians.apply(
         means3D,
         means2D,
@@ -55,6 +56,8 @@ class _RasterizeGaussians(torch.autograd.Function):
         cov3Ds_precomp,
         raster_settings,
     ):
+        print("_RasterizeGaussians --> forward") # [YC] debug
+        
         # Flatten from CxHxW
         bg = raster_settings.bg if len(raster_settings.bg.shape) == 1 else raster_settings.bg.permute(1,2,0).flatten()
         pixel_count = raster_settings.image_height * raster_settings.image_width
@@ -80,8 +83,10 @@ class _RasterizeGaussians(torch.autograd.Function):
             raster_settings.sh_degree,
             raster_settings.campos,
             raster_settings.prefiltered,
-            raster_settings.debug
+            raster_settings.debug,
+            raster_settings.depth # [YC]
         )
+        # print("raster_settings.depth: ", raster_settings.depth)
 
         # Invoke C++/CUDA rasterizer
         if raster_settings.debug:
@@ -93,12 +98,16 @@ class _RasterizeGaussians(torch.autograd.Function):
                 print("\nAn error occured in forward. Please forward snapshot_fw.dump for debugging.")
                 raise ex
         else:
+            print("rasterize_gaussians") # [YC] debug
             num_rendered, color, radii, geomBuffer, binningBuffer, imgBuffer = _C.rasterize_gaussians(*args)
 
         # Keep relevant tensors for backward
         ctx.raster_settings = raster_settings
+        print("raster_settings") # [YC] debug
         ctx.num_rendered = num_rendered
+        print("num_rendered") # [YC] debug
         ctx.save_for_backward(colors_precomp, means3D, scales, rotations, cov3Ds_precomp, radii, sh, geomBuffer, binningBuffer, imgBuffer)
+        print("save_for_backward") # [YC] debug
         return color, radii
 
     @staticmethod
@@ -135,7 +144,9 @@ class _RasterizeGaussians(torch.autograd.Function):
                 num_rendered,
                 binningBuffer,
                 imgBuffer,
-                raster_settings.debug)
+                raster_settings.debug,
+                raster_settings.depth, # [YC]
+                )
 
         # Compute gradients for relevant tensors by invoking backward method
         if raster_settings.debug:
@@ -176,6 +187,7 @@ class GaussianRasterizationSettings(NamedTuple):
     campos : torch.Tensor
     prefiltered : bool
     debug : bool
+    depth : torch.Tensor # [YC]
 
 class GaussianRasterizer(nn.Module):
     def __init__(self, raster_settings):
@@ -194,6 +206,8 @@ class GaussianRasterizer(nn.Module):
         return visible
 
     def forward(self, means3D, means2D, opacities, shs = None, colors_precomp = None, scales = None, rotations = None, cov3D_precomp = None):
+        
+        print("GaussianRasterizer --> forward")
         
         raster_settings = self.raster_settings
 
