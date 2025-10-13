@@ -358,12 +358,13 @@ renderCUDA(
 
 			// Eq. (3) from 3D Gaussian splatting paper.
 			// >>>> [YC] add
-			if (depths[collected_id[j]] < (depth_bg_color[pix_id]+1)){
-				for (int ch = 0; ch < CHANNELS; ch++){
+			// if (depths[collected_id[j]] <= (depth_bg_color[pix_id] + 2) || depth_bg_color[pix_id] <= 0) {
+			if (depths[collected_id[j]] <= (depth_bg_color[pix_id] + 0.1) || depth_bg_color[pix_id] <= 0) {
+				for (int ch = 0; ch < CHANNELS; ch++) {
 					C[ch] += features[collected_id[j] * CHANNELS + ch] * alpha * T;
 				}
 			}
-			else{
+			else {
 				continue;
 			}
 			// <<<< [YC] add

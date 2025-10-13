@@ -341,8 +341,8 @@ int CudaRasterizer::Rasterizer::forward(
 	CHECK_CUDA(cudaMemcpy(&host_point_list0, binningState.point_list, sizeof(uint32_t), cudaMemcpyDeviceToHost), debug);
 	CHECK_CUDA(cudaMemcpy(&host_depth_list0, binningState.point_depth_list, sizeof(uint32_t), cudaMemcpyDeviceToHost), debug);
 
-	printf("point_list[0]: %u\n", host_point_list0);
-	printf("point_depth_list[0]: %u\n", host_depth_list0);
+	// printf("point_list[0]: %u\n", host_point_list0);
+	// printf("point_depth_list[0]: %u\n", host_depth_list0);
 	// <<<< [YC] add
 
 	CHECK_CUDA(cudaMemset(imgState.ranges, 0, tile_grid.x * tile_grid.y * sizeof(uint2)), debug);
