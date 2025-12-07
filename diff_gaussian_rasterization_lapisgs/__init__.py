@@ -84,7 +84,9 @@ class _RasterizeGaussians(torch.autograd.Function):
             raster_settings.campos,
             raster_settings.prefiltered,
             raster_settings.debug,
-            raster_settings.depth # [YC]
+            raster_settings.depth, # [YC] add
+            raster_settings.far_thres, # [YC] add
+            raster_settings.near_thres, # [YC] add
         )
         # print("raster_settings.depth: ", raster_settings.depth)
 
@@ -92,14 +94,16 @@ class _RasterizeGaussians(torch.autograd.Function):
         if raster_settings.debug:
             cpu_args = cpu_deep_copy_tuple(args) # Copy them before they can be corrupted
             try:
-                num_rendered, color, radii, geomBuffer, binningBuffer, imgBuffer = _C.rasterize_gaussians(*args)
+                # num_rendered, color, radii, geomBuffer, binningBuffer, imgBuffer = _C.rasterize_gaussians(*args)
+                num_rendered, color, radii, geomBuffer, binningBuffer, imgBuffer, final_opacity = _C.rasterize_gaussians(*args)
             except Exception as ex:
                 torch.save(cpu_args, "snapshot_fw.dump")
                 print("\nAn error occured in forward. Please forward snapshot_fw.dump for debugging.")
                 raise ex
         else:
             print("rasterize_gaussians") # [YC] debug
-            num_rendered, color, radii, geomBuffer, binningBuffer, imgBuffer = _C.rasterize_gaussians(*args)
+            # num_rendered, color, radii, geomBuffer, binningBuffer, imgBuffer = _C.rasterize_gaussians(*args)
+            num_rendered, color, radii, geomBuffer, binningBuffer, imgBuffer, final_opacity = _C.rasterize_gaussians(*args)
 
         # Keep relevant tensors for backward
         ctx.raster_settings = raster_settings
@@ -108,7 +112,9 @@ class _RasterizeGaussians(torch.autograd.Function):
         print("num_rendered") # [YC] debug
         ctx.save_for_backward(colors_precomp, means3D, scales, rotations, cov3Ds_precomp, radii, sh, geomBuffer, binningBuffer, imgBuffer)
         print("save_for_backward") # [YC] debug
-        return color, radii
+        
+        # return color, radii # [YC] note: main return
+        return color, radii, final_opacity # [YC] note: main return
 
     @staticmethod
     def backward(ctx, grad_out_color, _):
@@ -187,7 +193,9 @@ class GaussianRasterizationSettings(NamedTuple):
     campos : torch.Tensor
     prefiltered : bool
     debug : bool
-    depth : torch.Tensor # [YC]
+    depth : torch.Tensor # [YC] add
+    far_thres: float # [YC] add
+    near_thres: float # [YC] add
 
 class GaussianRasterizer(nn.Module):
     def __init__(self, raster_settings):

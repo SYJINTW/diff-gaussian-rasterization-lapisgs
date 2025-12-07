@@ -275,7 +275,10 @@ renderCUDA(
 	uint32_t* __restrict__ n_contrib,
 	const float* __restrict__ bg_color,
 	float* __restrict__ out_color,
-	const float* __restrict__ depth_bg_color // [YC]
+	const float* __restrict__ depth_bg_color, // [YC] add
+	float* __restrict__ final_opacity, // [YC] add
+	const float far_thres, // [YC] add
+	const float near_thres // [YC] add
 )
 {
 	// Identify current tile and associated min/max pixel range.
@@ -358,8 +361,8 @@ renderCUDA(
 
 			// Eq. (3) from 3D Gaussian splatting paper.
 			// >>>> [YC] add
-			// if (depths[collected_id[j]] <= (depth_bg_color[pix_id] + 2) || depth_bg_color[pix_id] <= 0) {
-			if (depths[collected_id[j]] <= (depth_bg_color[pix_id] + 0.1) || depth_bg_color[pix_id] <= 0) {
+			// if (depths[collected_id[j]] <= (depth_bg_color[pix_id] + 0.1) || depth_bg_color[pix_id] <= 0) {
+			if ((depths[collected_id[j]] <= far_thres) && (depths[collected_id[j]] >= near_thres)) {
 				for (int ch = 0; ch < CHANNELS; ch++) {
 					C[ch] += features[collected_id[j] * CHANNELS + ch] * alpha * T;
 				}
@@ -385,6 +388,7 @@ renderCUDA(
 	if (inside)
 	{
 		final_T[pix_id] = T;
+		final_opacity[pix_id] = T; // [YC] add
 		n_contrib[pix_id] = last_contributor;
 		for (int ch = 0; ch < CHANNELS; ch++)
 			out_color[ch * H * W + pix_id] = C[ch] + T * bg_color[ch + pix_id * CHANNELS];
@@ -405,7 +409,10 @@ void FORWARD::render(
 	uint32_t* n_contrib,
 	const float* bg_color,
 	float* out_color,
-	const float* depth_bg_color // [YC]
+	const float* depth_bg_color, // [YC] add
+	float* final_opacity, // [YC] add: same as final_T
+	const float far_thres, // [YC] add
+	const float near_thres // [YC] add
 )	
 {
 	renderCUDA<NUM_CHANNELS> << <grid, block >> > (
@@ -421,7 +428,10 @@ void FORWARD::render(
 		n_contrib,
 		bg_color,
 		out_color,
-		depth_bg_color // [YC]
+		depth_bg_color, // [YC] add
+		final_opacity, // [YC] add
+		far_thres, // [YC] add
+		near_thres // [YC] add
 	);
 }
 

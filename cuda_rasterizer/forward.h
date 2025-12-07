@@ -62,7 +62,10 @@ namespace FORWARD
 		uint32_t* n_contrib,
 		const float* bg_color,
 		float* out_color,
-		const float* depth_bg_color // [YC]
+		const float* depth_bg_color, // [YC] add
+		float* final_opacity, // [YC] add
+		const float far_thres, // [YC] add
+		const float near_thres // [YC] add
 	);
 }
 

@@ -32,7 +32,8 @@ std::function<char*(size_t N)> resizeFunctional(torch::Tensor& t) {
     return lambda;
 }
 
-std::tuple<int, torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor>
+// std::tuple<int, torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor>
+std::tuple<int, torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor> // [YC] note: add final_opacity
 RasterizeGaussiansCUDA(
 	const torch::Tensor& background,
 	const torch::Tensor& means3D,
@@ -53,7 +54,9 @@ RasterizeGaussiansCUDA(
 	const torch::Tensor& campos,
 	const bool prefiltered,
 	const bool debug,
-	const torch::Tensor& depth_background // [YC]
+	const torch::Tensor& depth_background, // [YC] add
+	const float far_thres, // [YC] add
+	const float near_thres // [YC] add
 	)
 {
   if (means3D.ndimension() != 2 || means3D.size(1) != 3) {
@@ -70,6 +73,8 @@ RasterizeGaussiansCUDA(
   torch::Tensor out_color = torch::full({NUM_CHANNELS, H, W}, 0.0, float_opts);
   torch::Tensor radii = torch::full({P}, 0, means3D.options().dtype(torch::kInt32));
   
+	torch::Tensor final_opacity = torch::full({1, H, W}, 0.0, float_opts); // [YC] add
+  
   torch::Device device(torch::kCUDA);
   torch::TensorOptions options(torch::kByte);
   torch::Tensor geomBuffer = torch::empty({0}, options.device(device));
@@ -79,6 +84,7 @@ RasterizeGaussiansCUDA(
   std::function<char*(size_t)> binningFunc = resizeFunctional(binningBuffer);
   std::function<char*(size_t)> imgFunc = resizeFunctional(imgBuffer);
   
+
   int rendered = 0;
   if(P != 0)
   {
@@ -110,12 +116,16 @@ RasterizeGaussiansCUDA(
 		tan_fovy,
 		prefiltered,
 		out_color.contiguous().data<float>(),
-		depth_background.contiguous().data<float>(), // [YC]
+		depth_background.contiguous().data<float>(), // [YC] add
+		final_opacity.contiguous().data<float>(), // [YC] add
+		far_thres, // [YC] add
+		near_thres, // [YC] add
 		radii.contiguous().data<int>(), // has default
 		debug // has default
 	);
   }
-  return std::make_tuple(rendered, out_color, radii, geomBuffer, binningBuffer, imgBuffer);
+	// return std::make_tuple(rendered, out_color, radii, geomBuffer, binningBuffer, imgBuffer); // [YC] note: main return
+	return std::make_tuple(rendered, out_color, radii, geomBuffer, binningBuffer, imgBuffer, final_opacity); // [YC] add: final_opacity
 }
 
 std::tuple<torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor>

@@ -227,9 +227,13 @@ int CudaRasterizer::Rasterizer::forward(
 	const float tan_fovx, float tan_fovy,
 	const bool prefiltered,
 	float* out_color,
-	const float* depth_background, // [YC]
+	const float* depth_background, // [YC] add
+	float* final_opacity, // [YC] add
+	const float far_thres, // [YC] add
+	const float near_thres, // [YC] add
 	int* radii,
-	bool debug)
+	bool debug
+	)
 {
 	// printf("CudaRasterizer::Rasterizer::forward"); # [YC] debug
 	const float focal_y = height / (2.0f * tan_fovy);
@@ -366,16 +370,19 @@ int CudaRasterizer::Rasterizer::forward(
 		binningState.point_depth_list, // [YC] add
 		width, height,
 		geomState.means2D,
-		feature_ptr,
-		depth_ptr, // [YC] add
-		geomState.conic_opacity,
-		imgState.accum_alpha,
-		imgState.n_contrib,
+		feature_ptr, // colors
+		depth_ptr, // [YC] add: depths
+		geomState.conic_opacity, // conic_opacity
+		imgState.accum_alpha, // final_T
+		imgState.n_contrib, // n_contrib
 		background,
 		out_color,
-		depth_background // [YC]
+		depth_background, // [YC] add
+		final_opacity, // [YC] add
+		far_thres, // [YC] add
+		near_thres // [YC] add
 	), debug)
-
+	
 	return num_rendered;
 }
 
