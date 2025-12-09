@@ -22,6 +22,7 @@ RasterizeGaussiansCUDA(
 	const torch::Tensor& means3D,
     const torch::Tensor& colors,
     const torch::Tensor& opacity,
+	const torch::Tensor& resolutions, // [YC] add
 	const torch::Tensor& scales,
 	const torch::Tensor& rotations,
 	const float scale_modifier,

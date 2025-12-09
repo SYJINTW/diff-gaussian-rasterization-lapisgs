@@ -217,6 +217,7 @@ int CudaRasterizer::Rasterizer::forward(
 	const float* shs,
 	const float* colors_precomp,
 	const float* opacities,
+	const float* resolutions, // [YC] add
 	const float* scales,
 	const float scale_modifier,
 	const float* rotations,
@@ -269,6 +270,7 @@ int CudaRasterizer::Rasterizer::forward(
 		scale_modifier,
 		(glm::vec4*)rotations,
 		opacities,
+		resolutions, // [YC] add
 		shs,
 		geomState.clamped,
 		cov3D_precomp,

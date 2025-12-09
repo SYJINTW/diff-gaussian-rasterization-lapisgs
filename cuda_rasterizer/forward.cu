@@ -159,6 +159,7 @@ __global__ void preprocessCUDA(int P, int D, int M,
 	const float scale_modifier,
 	const glm::vec4* rotations,
 	const float* opacities,
+	const float* resolutions, // [YC] add
 	const float* shs,
 	bool* clamped,
 	const float* cov3D_precomp,
@@ -215,6 +216,31 @@ __global__ void preprocessCUDA(int P, int D, int M,
 
 	// Compute 2D screen-space covariance matrix
 	float3 cov = computeCov2D(p_orig, focal_x, focal_y, tan_fovx, tan_fovy, cov3D, viewmatrix);
+
+	// ================= [YC] MODIFICATION START =================
+	// 獲取降採樣倍率，例如 2.0 代表這個點原本是給 1/2 解析度用的
+    float downsample_factor = resolutions[idx];
+	// float downsample_factor = 4.0f;  // [YC] debug
+	
+	if (downsample_factor > 1.0f)
+    {
+        // 3DGS 標準的 Low-Pass Filter (LPF) 補償值通常是 0.3
+        // 這是為了模擬 1x1 像素的積分區域
+        const float BASE_FILTER = 0.3f;
+
+        // 我們要模擬的 "虛擬像素" 變大了，變成了 factor 倍
+        // 濾波器的 Variance (變異數) 與尺寸的平方成正比
+        // 所以新的濾波值應該是: 0.3 * (factor^2)
+        float target_filter = BASE_FILTER * (downsample_factor * downsample_factor);
+
+        // 因為 computeCov2D 裡面已經加過一次 BASE_FILTER (0.3) 了
+        // 我們只需要加上 "差值"
+        float extra_filter = target_filter - BASE_FILTER;
+
+        cov.x += extra_filter;
+        cov.z += extra_filter;
+    }
+	// ================= [YC] MODIFICATION END ===================
 
 	// Invert covariance (EWA algorithm)
 	float det = (cov.x * cov.z - cov.y * cov.y);
@@ -391,7 +417,8 @@ renderCUDA(
 		final_opacity[pix_id] = T; // [YC] add
 		n_contrib[pix_id] = last_contributor;
 		for (int ch = 0; ch < CHANNELS; ch++)
-			out_color[ch * H * W + pix_id] = C[ch] + T * bg_color[ch + pix_id * CHANNELS];
+			// out_color[ch * H * W + pix_id] = C[ch] + T * bg_color[ch + pix_id * CHANNELS];
+			out_color[ch * H * W + pix_id] = C[ch]; // [YC] add: don't calculate the background color
 	}
 }
 
@@ -441,6 +468,7 @@ void FORWARD::preprocess(int P, int D, int M,
 	const float scale_modifier,
 	const glm::vec4* rotations,
 	const float* opacities,
+	const float* resolutions, // [YC] add
 	const float* shs,
 	bool* clamped,
 	const float* cov3D_precomp,
@@ -468,6 +496,7 @@ void FORWARD::preprocess(int P, int D, int M,
 		scale_modifier,
 		rotations,
 		opacities,
+		resolutions, // [YC] add
 		shs,
 		clamped,
 		cov3D_precomp,

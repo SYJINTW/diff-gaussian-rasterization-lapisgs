@@ -27,6 +27,7 @@ namespace FORWARD
 		const float scale_modifier,
 		const glm::vec4* rotations,
 		const float* opacities,
+		const float* resolutions, // [YC] add
 		const float* shs,
 		bool* clamped,
 		const float* cov3D_precomp,
