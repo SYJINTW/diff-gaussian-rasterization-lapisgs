@@ -55,9 +55,7 @@ RasterizeGaussiansCUDA(
 	const torch::Tensor& campos,
 	const bool prefiltered,
 	const bool debug,
-	const torch::Tensor& depth_background, // [YC] add
-	const float far_thres, // [YC] add
-	const float near_thres // [YC] add
+	const torch::Tensor& depth_background // [YC] add
 	)
 {
   if (means3D.ndimension() != 2 || means3D.size(1) != 3) {
@@ -120,8 +118,6 @@ RasterizeGaussiansCUDA(
 		out_color.contiguous().data<float>(),
 		depth_background.contiguous().data<float>(), // [YC] add
 		final_opacity.contiguous().data<float>(), // [YC] add
-		far_thres, // [YC] add
-		near_thres, // [YC] add
 		radii.contiguous().data<int>(), // has default
 		debug // has default
 	);

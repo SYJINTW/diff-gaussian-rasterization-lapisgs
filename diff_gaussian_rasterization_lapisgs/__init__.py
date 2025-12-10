@@ -89,8 +89,6 @@ class _RasterizeGaussians(torch.autograd.Function):
             raster_settings.prefiltered,
             raster_settings.debug,
             raster_settings.depth, # [YC] add
-            raster_settings.far_thres, # [YC] add
-            raster_settings.near_thres, # [YC] add
         )
         # print("raster_settings.depth: ", raster_settings.depth)
 
@@ -198,9 +196,7 @@ class GaussianRasterizationSettings(NamedTuple):
     prefiltered : bool
     debug : bool
     depth : torch.Tensor # [YC] add
-    far_thres: float # [YC] add
-    near_thres: float # [YC] add
-
+    
 class GaussianRasterizer(nn.Module):
     def __init__(self, raster_settings):
         super().__init__()

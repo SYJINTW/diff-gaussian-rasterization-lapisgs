@@ -230,8 +230,6 @@ int CudaRasterizer::Rasterizer::forward(
 	float* out_color,
 	const float* depth_background, // [YC] add
 	float* final_opacity, // [YC] add
-	const float far_thres, // [YC] add
-	const float near_thres, // [YC] add
 	int* radii,
 	bool debug
 	)
@@ -380,9 +378,7 @@ int CudaRasterizer::Rasterizer::forward(
 		background,
 		out_color,
 		depth_background, // [YC] add
-		final_opacity, // [YC] add
-		far_thres, // [YC] add
-		near_thres // [YC] add
+		final_opacity // [YC] add
 	), debug)
 	
 	return num_rendered;

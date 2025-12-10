@@ -38,9 +38,7 @@ RasterizeGaussiansCUDA(
 	const torch::Tensor& campos,
 	const bool prefiltered,
 	const bool debug,
-	const torch::Tensor& depth, // [YC] add
-	const float far_thres, // [YC] add
-	const float near_thres // [YC] add
+	const torch::Tensor& depth // [YC] add
 );
 
 std::tuple<torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor>
