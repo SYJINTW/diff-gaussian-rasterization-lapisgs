@@ -181,7 +181,6 @@ __global__ void preprocessCUDA(int P, int D, int M,
 	bool prefiltered)
 {
 	auto idx = cg::this_grid().thread_rank();
-	// printf("idx %d:", idx);
 	if (idx >= P)
 		return;
 
@@ -291,18 +290,14 @@ __global__ void __launch_bounds__(BLOCK_X * BLOCK_Y)
 renderCUDA(
 	const uint2* __restrict__ ranges,
 	const uint32_t* __restrict__ point_list,
-	const uint32_t* __restrict__ point_depth_list, // [YC] add
 	int W, int H,
 	const float2* __restrict__ points_xy_image,
 	const float* __restrict__ features,
-	const float* __restrict__ depths, // [YC] add
 	const float4* __restrict__ conic_opacity,
 	float* __restrict__ final_T,
 	uint32_t* __restrict__ n_contrib,
 	const float* __restrict__ bg_color,
-	float* __restrict__ out_color,
-	const float* __restrict__ depth_bg_color, // [YC] add
-	float* __restrict__ final_opacity // [YC] add
+	float* __restrict__ out_color
 )
 {
 	// Identify current tile and associated min/max pixel range.
@@ -400,7 +395,6 @@ renderCUDA(
 	if (inside)
 	{
 		final_T[pix_id] = T;
-		final_opacity[pix_id] = T; // [YC] add
 		n_contrib[pix_id] = last_contributor;
 		for (int ch = 0; ch < CHANNELS; ch++)
 			out_color[ch * H * W + pix_id] = C[ch] + T * bg_color[ch + pix_id * CHANNELS];
@@ -412,35 +406,27 @@ void FORWARD::render(
 	const dim3 grid, dim3 block,
 	const uint2* ranges,
 	const uint32_t* point_list,
-	const uint32_t* point_depth_list, // [YC] add
 	int W, int H,
 	const float2* means2D,
-	const float* colors, // features
-	const float* depths, // [YC] add
+	const float* colors, // [YC] note: features
 	const float4* conic_opacity,
 	float* final_T,
 	uint32_t* n_contrib,
 	const float* bg_color,
-	float* out_color,
-	const float* depth_bg_color, // [YC] add
-	float* final_opacity // [YC] add: same as final_T
+	float* out_color
 )	
 {
 	renderCUDA<NUM_CHANNELS> << <grid, block >> > (
 		ranges,
 		point_list,
-		point_depth_list, // [YC] add
 		W, H,
 		means2D,
-		colors, // features
-		depths, // [YC] add
+		colors, // [YC] note: features
 		conic_opacity,
 		final_T,
 		n_contrib,
 		bg_color,
-		out_color,
-		depth_bg_color, // [YC] add
-		final_opacity // [YC] add
+		out_color
 	);
 }
 

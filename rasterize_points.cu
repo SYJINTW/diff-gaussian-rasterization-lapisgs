@@ -32,8 +32,7 @@ std::function<char*(size_t N)> resizeFunctional(torch::Tensor& t) {
     return lambda;
 }
 
-// std::tuple<int, torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor>
-std::tuple<int, torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor> // [YC] note: add final_opacity
+std::tuple<int, torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor>
 RasterizeGaussiansCUDA(
 	const torch::Tensor& background,
 	const torch::Tensor& means3D,
@@ -54,8 +53,7 @@ RasterizeGaussiansCUDA(
 	const int degree,
 	const torch::Tensor& campos,
 	const bool prefiltered,
-	const bool debug,
-	const torch::Tensor& depth_background // [YC] add
+	const bool debug
 	)
 {
   if (means3D.ndimension() != 2 || means3D.size(1) != 3) {
@@ -116,14 +114,11 @@ RasterizeGaussiansCUDA(
 		tan_fovy,
 		prefiltered,
 		out_color.contiguous().data<float>(),
-		depth_background.contiguous().data<float>(), // [YC] add
-		final_opacity.contiguous().data<float>(), // [YC] add
 		radii.contiguous().data<int>(), // has default
 		debug // has default
 	);
   }
-	// return std::make_tuple(rendered, out_color, radii, geomBuffer, binningBuffer, imgBuffer); // [YC] note: main return
-	return std::make_tuple(rendered, out_color, radii, geomBuffer, binningBuffer, imgBuffer, final_opacity); // [YC] add: final_opacity
+	return std::make_tuple(rendered, out_color, radii, geomBuffer, binningBuffer, imgBuffer); // [YC] note: main return
 }
 
 std::tuple<torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor>
@@ -148,8 +143,7 @@ std::tuple<torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Te
 	const int R,
 	const torch::Tensor& binningBuffer,
 	const torch::Tensor& imageBuffer,
-	const bool debug,
-	const torch::Tensor& depth) 
+	const bool debug) 
 {
   const int P = means3D.size(0);
   const int H = dL_dout_color.size(1);

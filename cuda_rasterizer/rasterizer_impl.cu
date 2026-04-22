@@ -74,7 +74,7 @@ __global__ void duplicateWithKeys(
 	const uint32_t* offsets,
 	uint64_t* gaussian_keys_unsorted,
 	uint32_t* gaussian_values_unsorted,
-	uint32_t* gaussian_depth_values_unsorted, // [YC] add
+	// uint32_t* gaussian_depth_values_unsorted, // [YC] add
 	int* radii,
 	dim3 grid)
 {
@@ -105,7 +105,7 @@ __global__ void duplicateWithKeys(
 				key |= *((uint32_t*)&depths[idx]);
 				gaussian_keys_unsorted[off] = key;
 				gaussian_values_unsorted[off] = idx;
-				gaussian_depth_values_unsorted[off] = depths[idx]; // [YC] add
+				// gaussian_depth_values_unsorted[off] = depths[idx]; // [YC] add
 				off++;
 			}
 		}
@@ -184,23 +184,23 @@ CudaRasterizer::BinningState CudaRasterizer::BinningState::fromChunk(char*& chun
 {
 	BinningState binning;
 	obtain(chunk, binning.point_list, P, 128);
-	obtain(chunk, binning.point_depth_list, P, 128); // [YC] add
+	// obtain(chunk, binning.point_depth_list, P, 128); // [YC] add
 	obtain(chunk, binning.point_list_unsorted, P, 128);
-	obtain(chunk, binning.point_depth_list_unsorted, P, 128); // [YC] add
+	// obtain(chunk, binning.point_depth_list_unsorted, P, 128); // [YC] add
 	obtain(chunk, binning.point_list_keys, P, 128); 
-	obtain(chunk, binning.point_depth_list_keys, P, 128); // [YC] add
+	// obtain(chunk, binning.point_depth_list_keys, P, 128); // [YC] add
 	obtain(chunk, binning.point_list_keys_unsorted, P, 128);
-	obtain(chunk, binning.point_depth_list_keys_unsorted, P, 128); // [YC] add
+	// obtain(chunk, binning.point_depth_list_keys_unsorted, P, 128); // [YC] add
 	cub::DeviceRadixSort::SortPairs(
 		nullptr, binning.sorting_size,
 		binning.point_list_keys_unsorted, binning.point_list_keys,
 		binning.point_list_unsorted, binning.point_list, P);
-	cub::DeviceRadixSort::SortPairs(
-		nullptr, binning.sorting_size,
-		binning.point_depth_list_keys_unsorted, binning.point_list_keys,
-		binning.point_depth_list_unsorted, binning.point_depth_list, P);
+	// cub::DeviceRadixSort::SortPairs(
+	// 	nullptr, binning.sorting_size,
+	// 	binning.point_depth_list_keys_unsorted, binning.point_list_keys,
+	// 	binning.point_depth_list_unsorted, binning.point_depth_list, P);
 	obtain(chunk, binning.list_sorting_space, binning.sorting_size, 128);
-	obtain(chunk, binning.list_sorting_space_depth, binning.sorting_size, 128);
+	// obtain(chunk, binning.list_sorting_space_depth, binning.sorting_size, 128);
 	return binning;
 }
 
@@ -228,8 +228,6 @@ int CudaRasterizer::Rasterizer::forward(
 	const float tan_fovx, float tan_fovy,
 	const bool prefiltered,
 	float* out_color,
-	const float* depth_background, // [YC] add
-	float* final_opacity, // [YC] add
 	int* radii,
 	bool debug
 	)
@@ -310,7 +308,7 @@ int CudaRasterizer::Rasterizer::forward(
 		geomState.point_offsets,
 		binningState.point_list_keys_unsorted,
 		binningState.point_list_unsorted,
-		binningState.point_depth_list_unsorted, // [YC] add
+		// binningState.point_depth_list_unsorted, // [YC] add
 		radii,
 		tile_grid)
 	CHECK_CUDA(, debug)
@@ -328,26 +326,26 @@ int CudaRasterizer::Rasterizer::forward(
 		num_rendered, 0, 32 + bit), debug)
 	
 	
-	// >>>> [YC] add
-	// Sort complete list of (duplicated) Gaussian indices by keys
-	CHECK_CUDA(cub::DeviceRadixSort::SortPairs(
-		binningState.list_sorting_space_depth,
-		binningState.sorting_size,
-		binningState.point_list_keys_unsorted, 
-		binningState.point_depth_list_keys,
-		binningState.point_depth_list_unsorted, // in
-		binningState.point_depth_list, // out
-		num_rendered, 0, 32 + bit), debug)
+	// // >>>> [YC] add
+	// // Sort complete list of (duplicated) Gaussian indices by keys
+	// CHECK_CUDA(cub::DeviceRadixSort::SortPairs(
+	// 	binningState.list_sorting_space_depth,
+	// 	binningState.sorting_size,
+	// 	binningState.point_list_keys_unsorted, 
+	// 	binningState.point_depth_list_keys,
+	// 	binningState.point_depth_list_unsorted, // in
+	// 	binningState.point_depth_list, // out
+	// 	num_rendered, 0, 32 + bit), debug)
 	
-	uint32_t host_point_list0;
-	uint32_t host_depth_list0;
+	// uint32_t host_point_list0;
+	// uint32_t host_depth_list0;
 
-	CHECK_CUDA(cudaMemcpy(&host_point_list0, binningState.point_list, sizeof(uint32_t), cudaMemcpyDeviceToHost), debug);
-	CHECK_CUDA(cudaMemcpy(&host_depth_list0, binningState.point_depth_list, sizeof(uint32_t), cudaMemcpyDeviceToHost), debug);
+	// CHECK_CUDA(cudaMemcpy(&host_point_list0, binningState.point_list, sizeof(uint32_t), cudaMemcpyDeviceToHost), debug);
+	// CHECK_CUDA(cudaMemcpy(&host_depth_list0, binningState.point_depth_list, sizeof(uint32_t), cudaMemcpyDeviceToHost), debug);
 
-	// printf("point_list[0]: %u\n", host_point_list0);
-	// printf("point_depth_list[0]: %u\n", host_depth_list0);
-	// <<<< [YC] add
+	// // printf("point_list[0]: %u\n", host_point_list0);
+	// // printf("point_depth_list[0]: %u\n", host_depth_list0);
+	// // <<<< [YC] add
 
 	CHECK_CUDA(cudaMemset(imgState.ranges, 0, tile_grid.x * tile_grid.y * sizeof(uint2)), debug);
 
@@ -367,18 +365,14 @@ int CudaRasterizer::Rasterizer::forward(
 		tile_grid, block,
 		imgState.ranges,
 		binningState.point_list,
-		binningState.point_depth_list, // [YC] add
 		width, height,
 		geomState.means2D,
 		feature_ptr, // colors
-		depth_ptr, // [YC] add: depths
 		geomState.conic_opacity, // conic_opacity
 		imgState.accum_alpha, // final_T
 		imgState.n_contrib, // n_contrib
 		background,
-		out_color,
-		depth_background, // [YC] add
-		final_opacity // [YC] add
+		out_color
 	), debug)
 	
 	return num_rendered;
