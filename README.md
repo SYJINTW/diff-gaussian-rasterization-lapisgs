@@ -1,7 +1,9 @@
-# Differential Gaussian Rasterization
+# Layered Differential Gaussian Rasterization for LapisGS
 
-[Update version]
 This is the modified version of differential Gaussian rasterization for object-based LapisGS representation.
+We support two main changes:
+(i) custom background: allow user to setup a custom background instead of pure color background, and
+(ii) layered rendering: allow user to set up the resolution of each Gaussian points during rendering
 
 ## Changing
 For inputs, we modify the type of background, and adding background depth and gaussians' resolutions.
@@ -9,11 +11,10 @@ For output, we add final opacity of each pixel.
 
 ## Usage
 ### Background Generation
-Generate a pure color background and pure depth background. The depth background (bg_depth) is not used in this version of rasterization, but we keep it for future usage.
+Generate a pure color background. But you can also generate your own background by following the rules.
 ```python
 bg_color = torch.tensor([0, 0, 0], dtype=torch.float32, device="cuda").view(3, 1, 1)
 bg_color = bg_color.expand(3, viewpoint_camera.image_height, viewpoint_camera.image_width)
-bg_depth = torch.full((1, viewpoint_camera.image_height, viewpoint_camera.image_width), 0, dtype=torch.float32, device="cuda")
 ```
 
 ### Gaussian Rasterization Settings
@@ -31,7 +32,6 @@ raster_settings = GaussianRasterizationSettings(
         campos=viewpoint_camera.camera_center,
         prefiltered=False,
         debug=pipe.debug,
-        depth=bg_depth # [YC] add
         # antialiasing=pipe.antialiasing # [YC] remove: because this code is based on older version of Gaussian Rasterization code
     )
 rasterizer = GaussianRasterizer(raster_settings=raster_settings)
@@ -39,9 +39,9 @@ rasterizer = GaussianRasterizer(raster_settings=raster_settings)
 
 ### Gaussian Rendering
 ```python
-gs_res = 1.0 # [YC] note: 1.0 --> 1/1, 2.0 --> 1/2, 4.0 --> 1/4
+gs_res = 1.0 # [YC] note: 1.0 --> 1/1 (res1 in LapisGS), 2.0 --> 1/2 (res2 in LapisGS), 4.0 --> 1/4 (res4 in LapisGS)
 resolutions = torch.tensor([gs_res for _ in range(len(pc.get_xyz))], device="cuda")
-rendered_image, radii, final_opacity = rasterizer(
+rendered_image, radii = rasterizer(
             means3D = means3D,
             means2D = means2D,
             dc = dc,
@@ -51,7 +51,7 @@ rendered_image, radii, final_opacity = rasterizer(
             resolutions = resolutions, # [YC] add
             scales = scales,
             rotations = rotations,
-            cov3D_precomp = cov3D_precomp) # [YC] note: final_opacity is the (1 - (total opacity of all the Gaussian in each pixel))
+            cov3D_precomp = cov3D_precomp)
 ```
 
 
