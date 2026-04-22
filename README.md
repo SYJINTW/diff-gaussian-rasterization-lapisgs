@@ -1,5 +1,6 @@
 # Differential Gaussian Rasterization
 
+[Update version]
 This is the modified version of differential Gaussian rasterization for object-based LapisGS representation.
 
 ## Changing
